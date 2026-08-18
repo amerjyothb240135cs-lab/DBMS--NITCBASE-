@@ -1,72 +1,94 @@
-#include <cstring>
-#include <iostream>
-#include "Disk_Class/Disk.h"
-#include "Buffer/StaticBuffer.h"
-#include "Buffer/BlockBuffer.h"
 #include "Cache/OpenRelTable.h"
+#include "Disk_Class/Disk.h"
 #include "FrontendInterface/FrontendInterface.h"
-
-using namespace std;
-
-int main()
+#include <iostream>
+int main(int argc, char *argv[]) 
 {
-    Disk diskRun;
+	Disk disk_run;
 
-    RecBuffer relBuffer(RELCAT_BLOCK);
+	// create objects for the relation catalog and attribute catalog
+	RecBuffer relCatBuffer(RELCAT_BLOCK);
+	RecBuffer attrCatBuffer(ATTRCAT_BLOCK);
 
-    HeadInfo relHead;
-    relBuffer.getHeader(&relHead);
+	HeadInfo relCatHeader;
+	HeadInfo attrCatHeader;
 
-    for (int i = 0; i < relHead.numEntries; i = i + 1)
-    {
-        Attribute relRec[RELCAT_NO_ATTRS];
-        relBuffer.getRecord(relRec, i);
+	// load the headers of both the blocks into relCatHeader and attrCatHeader.
+	// (we will implement these functions later)
+	relCatBuffer.getHeader(&relCatHeader);
+	attrCatBuffer.getHeader(&attrCatHeader);
 
-        cout << "Relation: "
-             << relRec[RELCAT_REL_NAME_INDEX].sVal
-             << endl;
+	for (int i=0;i<relCatHeader.numEntries;i++) 
+	{
 
-        
-    int block = ATTRCAT_BLOCK;
+		Attribute relCatRecord[RELCAT_NO_ATTRS]; // will store the record from the relation catalog
 
-    while (block != INVALID_BLOCKNUM)
-    {
-        RecBuffer attrBuffer(block);
+		relCatBuffer.getRecord(relCatRecord, i);
 
-        HeadInfo head;
-        attrBuffer.getHeader(&head);
+		printf("Relation: %s\n", relCatRecord[RELCAT_REL_NAME_INDEX].sVal);
 
-        for (int i = 0; i < head.numEntries; i = i + 1)
-        {
-            Attribute rec[ATTRCAT_NO_ATTRS];
-            attrBuffer.getRecord(rec, i);
+		for (int j=0;j<attrCatHeader.numEntries;j++) 
+		{
+			Attribute attrCatRecord[ATTRCAT_NO_ATTRS];
+			attrCatBuffer.getRecord(attrCatRecord,j);
+			// declare attrCatRecord and load the attribute catalog entry into it
+			
+			if (strcmp(attrCatRecord[ATTRCAT_REL_NAME_INDEX].sVal,relCatRecord[RELCAT_REL_NAME_INDEX].sVal)==0) 
+			{
+				const char *attrType = attrCatRecord[ATTRCAT_ATTR_TYPE_INDEX].nVal == NUMBER ? "NUM" : "STR";
+				printf("  %s: %s\n",attrCatRecord[ATTRCAT_ATTR_NAME_INDEX].sVal, attrType);
+				
+				if((strcmp(attrCatRecord[ATTRCAT_REL_NAME_INDEX].sVal,"Students")==0) && (strcmp("Class",attrCatRecord[ATTRCAT_ATTR_NAME_INDEX].sVal)==0))
+				{
+					unsigned char buffer[BLOCK_SIZE];
+					Disk::readBlock(buffer, ATTRCAT_BLOCK);
+					
+					memcpy(&buffer[52+j*96+16],"Batch",6);
+					Disk::writeBlock(buffer, ATTRCAT_BLOCK);
+					
+					
+				}
+			}
 
-            if (strcmp(relRec[RELCAT_REL_NAME_INDEX].sVal, "Students") == 0 &&
-                strcmp(rec[ATTRCAT_ATTR_NAME_INDEX].sVal, "Class") == 0)
-            {
-                strcpy(rec[ATTRCAT_ATTR_NAME_INDEX].sVal, "Batch");
-            }
+			/*if ((strcmp(attrCatRecord[ATTRCAT_REL_NAME_INDEX].sVal,relCatRecord[RELCAT_REL_NAME_INDEX].sVal)==0)&&(strcmp("Class",attrCatRecord[ATTRCAT_ATTR_NAME_INDEX].sVal)==0))
+			{
+				//Disk::Disk();
+				unsigned char buffer[BLOCK_SIZE];
+				Disk::readBlock(buffer, ATTRCAT_BLOCK);
+				
+				
+				memcpy(&buffer[52+j*96+16],"Batch",6);
+				Disk::writeBlock(buffer, ATTRCAT_BLOCK);
+				//Disk :: ~Disk()
+				
+			}*/
+		}
+		printf("\n");
+	}
+	
+	for (int i=0;i<relCatHeader.numEntries;i++) 
+	{
 
-            if (strcmp(rec[ATTRCAT_REL_NAME_INDEX].sVal, relRec[RELCAT_REL_NAME_INDEX].sVal) == 0)
-            {
-                cout << "  "
-                     << rec[ATTRCAT_ATTR_NAME_INDEX].sVal
-                     << " : ";
+		Attribute relCatRecord[RELCAT_NO_ATTRS]; // will store the record from the relation catalog
 
-                if (rec[ATTRCAT_ATTR_TYPE_INDEX].nVal == NUMBER)
-                    cout << "NUM";
-                else
-                    cout << "STR";
+		relCatBuffer.getRecord(relCatRecord, i);
 
-                cout << endl;
-            }
-        }
+		printf("Relation: %s\n", relCatRecord[RELCAT_REL_NAME_INDEX].sVal);
 
-        block = head.rblock;
-    }
+		for (int j=0;j<attrCatHeader.numEntries;j++) 
+		{
+			Attribute attrCatRecord[ATTRCAT_NO_ATTRS];
+			attrCatBuffer.getRecord(attrCatRecord,j);
+			// declare attrCatRecord and load the attribute catalog entry into it
 
-        cout << endl;
-    }
+			if (strcmp(attrCatRecord[ATTRCAT_REL_NAME_INDEX].sVal,relCatRecord[RELCAT_REL_NAME_INDEX].sVal)==0) 
+			{
+				const char *attrType = attrCatRecord[ATTRCAT_ATTR_TYPE_INDEX].nVal == NUMBER ? "NUM" : "STR";
+				printf("  %s: %s\n",attrCatRecord[ATTRCAT_ATTR_NAME_INDEX].sVal, attrType);
+			}
+		}
+		printf("\n");
+	}
 
-    return 0;
+	return 0;
 }
