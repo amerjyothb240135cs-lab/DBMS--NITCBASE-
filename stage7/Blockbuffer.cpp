@@ -4,7 +4,22 @@
 #include <cstring>
 
 BlockBuffer::BlockBuffer(char blockType) {
-    this->blockNum = getFreeBlock(blockType);
+    int block=0;
+    
+    if(blockType=='R')
+    block=REC;
+    else if(blockType=='I')
+    block=IND_INTERNAL;
+    else if(blockType=='L')
+    block=IND_LEAF;
+    
+    int blockNum=getFreeBlock(block);
+
+    // set the blockNum field of the object to that of the allocated block
+    // number if the method returned a valid block number,
+    // otherwise set the error code returned as the block number.
+    
+    this->blockNum=blockNum;
 }
 
 BlockBuffer::BlockBuffer(int blockNum) {
